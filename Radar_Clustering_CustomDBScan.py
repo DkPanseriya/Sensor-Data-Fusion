@@ -9,6 +9,7 @@ from collections import defaultdict
 import matplotlib.image as mpi 
 import matplotlib.pyplot as plt  
 from matplotlib.patches import Rectangle
+import math
 
 ############# FUSION PIPELINE CODE #################
 def radar_2d_projections(radar_points, camera_T, camera_k):
@@ -83,8 +84,19 @@ class my_custom_dbscan:
         neighbours = []
         coordinates = self.cloud_data[pcd_radar_point][-3:-1]  # x, y coordinates
         range_pcd_radar_point = self.cloud_data[pcd_radar_point][0]
-        eps1 = self.eps1 * range_pcd_radar_point
-        eps2 = self.eps2 * range_pcd_radar_point
+        
+        # change of eps wrt range
+        eps1 = ((self.eps1/math.sqrt(range_pcd_radar_point)) * range_pcd_radar_point) + 1.5
+        eps2 = ((self.eps2/math.sqrt(range_pcd_radar_point)) * range_pcd_radar_point) + 1.5
+
+        # eps1 = 2.5 * math.exp(range_pcd_radar_point/60)
+        # eps2 = 2.5 * math.exp(range_pcd_radar_point/60)
+
+        # eps1 = self.eps1 * range_pcd_radar_point
+        # eps2 = self.eps2 * range_pcd_radar_point
+
+
+        # print(f" eps {eps1, eps2}")
         
         # Calculate the neighbourhood for each other point in cloud_data
         for point_in_consideration in range(0, len(self.cloud_data)):
@@ -185,7 +197,7 @@ class my_custom_dbscan:
         df = pd.DataFrame(cloud_data)
         pcd_np = df.to_numpy()
 
-        file_info = {"cluster": [], "noise": []}
+        file_info = {"clusters": [], "noise": []}
         if pcd_np.shape[0] > 0:
             self.labels = [0] * len(pcd_np)
             self.cloud_data = pcd_np
@@ -207,15 +219,23 @@ class my_custom_dbscan:
                 clusters_detected = True
                 centroid = cluster_data[["x", "y", "z"]].mean().tolist()
                 closest_point = cluster_data[cluster_data['range'] == cluster_data['range'].min()]
-                closest_point_position = closest_point[['x', 'y', 'z']].values.tolist()[0]
-                # closest_point_velocity = closest_point['range_rate'].values.tolist()
-                centroid_velocity = cluster_data['range_rate'].mean().tolist()
+                
+                closest_point_x_position = np.array(closest_point[['x']].values.tolist()[0])
+                y_mean = np.array(cluster_data[["y"]].mean().tolist())
+                closest_point_z_position = np.array(closest_point[['z']].values.tolist()[0])
+                closest_point_position = list(np.column_stack((closest_point_x_position, y_mean, closest_point_z_position))[0])
 
+                # closest_point_position = [closest_point_x_position + y_mean + closest_point_z_position]
+                # closest_point_position = closest_point[['x', 'y', 'z']].values.tolist()[0]
+                # print(closest_point_position)
+
+                # closest_point_velocity = closest_point['range_rate'].values.tolist()
+                centroid_velocity = cluster_data[['range_rate']].mean().tolist()
                 centroid_closest_point_centroid_velocity = [centroid, closest_point_position, centroid_velocity]
-                file_info['cluster'].append(centroid_closest_point_centroid_velocity)
+                file_info['clusters'].append(centroid_closest_point_centroid_velocity)
 
             if not clusters_detected:
-                file_info["cluster"].append([]) # No clusters detected. Append an empty list.
+                file_info["clusters"].append([]) # No clusters detected. Append an empty list.
 
             # all_files_info[os.path.basename(pcd_file)] = file_info
 
@@ -246,3 +266,5 @@ def visualize_radar_bbox(radar_points:list, bbox_points:list, image_path:str):
     # Scatter plot for radar points 
     plt.scatter(radar_points[0], radar_points[1])
     plt.show()
+
+# if __name__ == "__main__": 
