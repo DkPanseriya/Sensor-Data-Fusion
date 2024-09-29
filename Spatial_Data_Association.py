@@ -681,12 +681,12 @@ def get_image_visualization(final_association_dict, list_of_pred_boxes, clusters
 # The Function Owner
 def main():    
 
-    path_to_images = Path(r'C:\Dk\Projects\Team Project\Dataset\INFRA-3DRC-Dataset\INFRA-3DRC_scene-15\camera_01\camera_01__data')
-    path_to_pcd = Path(r'C:\Dk\Projects\Team Project\Dataset\INFRA-3DRC-Dataset\INFRA-3DRC_scene-15\radar_01\radar_01__data')
-    calibration_file = Path(r"C:\Dk\Projects\Team Project\Dataset\INFRA-3DRC-Dataset\INFRA-3DRC_scene-15\calibration.json")
+    path_to_images = Path('path/to/your/images_folder)
+    path_to_pcd = Path('path/to/your/radar_pcd_folder')
+    calibration_file = Path('path/to/your/calibration_file')
     scene_image = sorted(list(image for image in path_to_images.iterdir()))
     scene_pcd = sorted(list(image for image in path_to_pcd.iterdir()))
-    yolo_model = YOLO(r"C:\Dk\Projects\Team Project\YOLO detection\Models\Harshit_Large\large_300 epoch_batch 4_augmented\train32\weights\best.pt")
+    yolo_model = YOLO('path/to/your/trained_model')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     sensor_calibration_dict = get_sensor_calibration(calibration_file)
