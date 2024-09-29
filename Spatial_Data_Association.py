@@ -681,7 +681,7 @@ def get_image_visualization(final_association_dict, list_of_pred_boxes, clusters
 # The Function Owner
 def main():    
 
-    path_to_images = Path('path/to/your/images_folder)
+    path_to_images = Path('path/to/your/images_folder')
     path_to_pcd = Path('path/to/your/radar_pcd_folder')
     calibration_file = Path('path/to/your/calibration_file')
     scene_image = sorted(list(image for image in path_to_images.iterdir()))
