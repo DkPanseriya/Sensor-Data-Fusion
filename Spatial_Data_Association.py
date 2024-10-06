@@ -14,7 +14,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 from Radar_Clustering_CustomDBScan import *
-
+import doctest
 
 # Sensor Calibration Dictionary 
 def get_sensor_calibration(calibration_file):
@@ -310,15 +310,15 @@ def get_filtered_cases(matrix, datatype='clusters', association_list=None):
     Examples: 
     >>> import pprint
     >>> matrix = np.array([
-    ...     [1, 0, 1, 0, 0, 0],
-    ...     [0, 1, 1, 0, 0, 0],
-    ...     [1, 1, 0, 0, 0, 0],
-    ...     [0, 0, 0, 1, 0, 0],
-    ...     [0, 0, 0, 0, 1, 0],
-    ...     [0, 0, 0, 0, 1, 0],
+    ...     [0, 0, 0, 1, 0, 1],
+    ...     [0, 0, 0, 0, 1, 1],
+    ...     [0, 0, 0, 1, 1, 0],
+    ...     [0, 0, 1, 0, 0, 0],
+    ...     [0, 1, 0, 0, 0, 0],
+    ...     [0, 1, 0, 0, 0, 0],
     ...     [0, 0, 0, 0, 0, 0]
     ... ])
-    >>> pprint.pprint(get_associations(matrix))
+    >>> pprint.pprint(get_filtered_cases(matrix))
     {'many_radar_to_many_image': {'cols': [0, 1, 2], 'rows': [0, 1, 2]},
      'many_radar_to_one_image': {'cols': [4], 'rows': [(array([4, 5]),)]},
      'one_radar_to_many_image': {'cols': [], 'rows': []},
