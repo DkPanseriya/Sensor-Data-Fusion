@@ -319,11 +319,12 @@ def get_filtered_cases(matrix, datatype='clusters', association_list=None):
     ...     [0, 0, 0, 0, 0, 0]
     ... ])
     >>> pprint.pprint(get_filtered_cases(matrix))
-    {'many_radar_to_many_image': {'cols': [0, 1, 2], 'rows': [0, 1, 2]},
-     'many_radar_to_one_image': {'cols': [4], 'rows': [(array([4, 5]),)]},
-     'one_radar_to_many_image': {'cols': [], 'rows': []},
-     'one_radar_to_one_image': {'cols': [3], 'rows': [3]}}
-    """ 
+    {'many_cluster_to_many_bbox': {'bbox': [3, 4, 5], 'clusters': [0, 1, 2]},
+     'many_cluster_to_one_bbox': {'bbox': [[1]], 'clusters': [[4, 5]]},
+     'one_cluster_to_many_bbox': {'bbox': [], 'clusters': []},
+     'one_cluster_to_one_bbox': {'assigned': [[3, 2]]},
+     'unassigned_bbox': {'bbox': [0]}}
+    """
     associations = {
         "many_cluster_to_many_bbox" : {"clusters": [], "bbox": []}, 
         "many_cluster_to_one_bbox"  : {"clusters": [], "bbox": []},
