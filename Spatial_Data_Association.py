@@ -192,7 +192,7 @@ def camera_plotting(image_on_ground, my_plot):
         colors = ['blue', 'green', 'orange', 'black', 'purple', 'maroon']
 
         for i, (x_co, y_co) in enumerate(zip(x_plotting_list, y_plotting_list)):
-                my_plot.scatter(y_co, x_co, color=colors[i], label= 'camera', marker='o')
+                my_plot.scatter(y_co, x_co, color=colors[i % len(colors)], label= 'camera', marker='o')
 
         my_plot.set_xlim(-30,30)
         my_plot.set_ylim(0,100)
@@ -319,11 +319,12 @@ def get_filtered_cases(matrix, datatype='clusters', association_list=None):
     ...     [0, 0, 0, 0, 0, 0]
     ... ])
     >>> pprint.pprint(get_filtered_cases(matrix))
-    {'many_radar_to_many_image': {'cols': [0, 1, 2], 'rows': [0, 1, 2]},
-     'many_radar_to_one_image': {'cols': [4], 'rows': [(array([4, 5]),)]},
-     'one_radar_to_many_image': {'cols': [], 'rows': []},
-     'one_radar_to_one_image': {'cols': [3], 'rows': [3]}}
-    """ 
+    {'many_cluster_to_many_bbox': {'bbox': [3, 4, 5], 'clusters': [0, 1, 2]},
+     'many_cluster_to_one_bbox': {'bbox': [[1]], 'clusters': [[4, 5]]},
+     'one_cluster_to_many_bbox': {'bbox': [], 'clusters': []},
+     'one_cluster_to_one_bbox': {'assigned': [[3, 2]]},
+     'unassigned_bbox': {'bbox': [0]}}
+    """
     associations = {
         "many_cluster_to_many_bbox" : {"clusters": [], "bbox": []}, 
         "many_cluster_to_one_bbox"  : {"clusters": [], "bbox": []},
@@ -402,7 +403,7 @@ def get_one_to_many_association(filtered_cases, clusters_on_ground, image_on_gro
     elif datatype == 'noise':
         lower_idx = 0
     else:
-        print('KeyError')
+        raise ValueError(f"Unknown datatype: {datatype}")
 
     list_of_centroid_indices = filtered_cases['one_cluster_to_many_bbox']['clusters']
     list_of_box_indices = filtered_cases['one_cluster_to_many_bbox']['bbox']
@@ -425,12 +426,20 @@ def get_one_to_many_association(filtered_cases, clusters_on_ground, image_on_gro
 
 
 # Association of Many cluster/Noise to One Bounding box
-def nearest_point_finder(points_list, processed_radar_points_to_ground):
+def nearest_point_finder(points_list, processed_radar_points_to_ground, datatype='clusters'):
+    # Clusters carry [centroid, closest_point, velocity]; noise points carry [point, velocity]
+    if datatype == 'clusters':
+        lower_idx = 1
+    elif datatype == 'noise':
+        lower_idx = 0
+    else:
+        raise ValueError(f"Unknown datatype: {datatype}")
+
     x_list = []
     for point in points_list:
-        x_p = processed_radar_points_to_ground['clusters'][point][1][0]
+        x_p = processed_radar_points_to_ground[datatype][point][lower_idx][0]
         x_list.append(x_p)
-    
+
     return x_list.index(min(x_list))
 
 def get_many_to_one_association(filtered_cases, association_list, clusters_on_ground, image_on_ground, datatype='clusters'):
@@ -525,7 +534,7 @@ def get_many_to_one_association(filtered_cases, association_list, clusters_on_gr
 
             distance_comparison = []
             for item in new_updated_candidate:
-                nearest_point = nearest_point_finder(item, clusters_on_ground)
+                nearest_point = nearest_point_finder(item, clusters_on_ground, datatype=datatype)
                 nearest_point_data = clusters_on_ground['clusters'][item[nearest_point]][1] if datatype == 'clusters' else clusters_on_ground['noise'][item[nearest_point]][0]
                 box_bottom_center = image_on_ground[box_data][1]
                 e_c_distance = get_euclidean_distance(nearest_point_data[0:2], box_bottom_center)
@@ -565,7 +574,7 @@ def get_drawings(colour_idx, image, box_data, centroid_data, datatype='clusters'
     corner_2 = tuple(map(int, [original_box[2], original_box[3]]))            
 
     # Draw Original bounding box
-    colour = colors[colour_idx]
+    colour = colors[colour_idx % len(colors)]
     thickness_of_box = 3
     cv2.rectangle(image, corner_1, corner_2, colour, thickness_of_box)
 

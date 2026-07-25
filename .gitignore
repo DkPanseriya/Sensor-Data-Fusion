@@ -1,0 +1,48 @@
+# ---------------------------------------------------------------------------
+# Datasets - not distributed with this repository.
+# Get INFRA-3DRC from https://github.com/FraunhoferIVI/INFRA-3DRC-Dataset
+# and place the scene folders under Dataset/INFRA-3DRC-Dataset/.
+# ---------------------------------------------------------------------------
+Dataset/
+
+# Generated YOLO training/validation splits
+Training Setup/
+Training Setup_augmented/
+
+# ---------------------------------------------------------------------------
+# Training / inference artefacts
+# ---------------------------------------------------------------------------
+runs/
+events.out.tfevents.*
+*.tfevents.*
+
+# ---------------------------------------------------------------------------
+# Model weights. The three checkpoints under 'YOLO Models/' are committed
+# through Git LFS and are explicitly kept; any other weights (downloaded
+# backbones, local training output) stay out of the repository.
+# ---------------------------------------------------------------------------
+*.pt
+!YOLO Models/*.pt
+
+# ---------------------------------------------------------------------------
+# Large media and binaries
+# ---------------------------------------------------------------------------
+*.mp4
+*.zip
+
+# ---------------------------------------------------------------------------
+# Python / Jupyter
+# ---------------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# ---------------------------------------------------------------------------
+# OS / editor
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
