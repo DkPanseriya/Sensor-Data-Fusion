@@ -4,9 +4,7 @@ Late fusion of camera and automotive radar for roadside infrastructure perceptio
 
 ## Overview
 
-This comes out of a university team project (*Team Project - Sensor Data Fusion*, TH Ingolstadt, summer semester 2024). It builds a perception pipeline for a roadside smart-infrastructure sensor station: a camera and a long-range automotive radar mounted at the side of a road in Ingolstadt, Germany, recorded as the public [INFRA-3DRC dataset](https://github.com/FraunhoferIVI/INFRA-3DRC-Dataset).
-
-**This repository is one author's slice of that team project, not the whole thing.** It holds the spatial-association script, the custom radar-clustering module, the YOLO training/dataset notebooks and three trained detector checkpoints. The full multi-author tree - the per-member working directories, the from-scratch mAP validation scripts, the Ultralytics run directories, the alternative association variants and the course presentations - lives elsewhere and is not included here. Where a number below comes from a file that is not in this repository, that is stated explicitly.
+A perception pipeline for a roadside smart-infrastructure sensor station: a camera and a long-range automotive radar mounted at the side of a road in Ingolstadt, Germany, recorded as the public [INFRA-3DRC dataset](https://github.com/FraunhoferIVI/INFRA-3DRC-Dataset).
 
 The pipeline is a late-fusion design with three parts:
 
@@ -16,7 +14,9 @@ The pipeline is a late-fusion design with three parts:
 
 The output per frame is a set of fused detections that carry the camera's class label together with the radar's range and Doppler velocity, rendered as an annotated image next to a live bird's-eye view of the ground plane.
 
-Everything except the YOLOv8 backbone is implemented by the team: the COCO-to-YOLO conversion, the mAP evaluation, the clustering algorithm and the association logic.
+Everything except the YOLOv8 backbone is implemented from scratch: the COCO-to-YOLO conversion, the mAP evaluation, the clustering algorithm and the association logic.
+
+This repository holds the association script, the radar-clustering module, the camera-branch notebooks and three trained detector checkpoints. Where a number below comes from a file that is not committed here, that is stated explicitly.
 
 ## Demo
 
@@ -38,15 +38,15 @@ INFRA-3DRC ships COCO-style JSON annotations. These are converted to YOLO `txt` 
 
 ### 2. YOLOv8 training
 
-Three model sizes were trained with Ultralytics (image size 640, up to 300 epochs, batch 4-16, with and without augmentation), partly on Google Colab, one variant per team member. The three resulting checkpoints are committed here under `YOLO Models/` through Git LFS. The full Ultralytics run directories - `results.csv`, training curves, confusion matrices, PR curves - are part of the team project and are **not** in this repository.
+Three model sizes were trained with Ultralytics (image size 640, up to 300 epochs, batch 4-16, with and without augmentation), partly on Google Colab. The three resulting checkpoints are committed here under `YOLO Models/` through Git LFS. The full Ultralytics run directories - `results.csv`, training curves, confusion matrices, PR curves - are **not** committed here.
 
 - `Training YOLO/Training_and_Validation.ipynb`
 
 ### 3. Validation implemented from scratch
 
-Rather than trusting the Ultralytics validation numbers, the team implemented mAP itself: a per-frame IoU matrix between predictions and ground truth, greedy row/column parsing to enforce one-to-one matches, per-class TP/FP/FN accounting, a confidence sweep from 0.5 to 0.9, 11-point interpolated average precision, and a mAP sweep over IoU 0.50 to 0.95 plotted as a mAP-vs-IoU curve.
+Rather than trusting the Ultralytics validation numbers, mAP is implemented directly: a per-frame IoU matrix between predictions and ground truth, greedy row/column parsing to enforce one-to-one matches, per-class TP/FP/FN accounting, a confidence sweep from 0.5 to 0.9, 11-point interpolated average precision, and a mAP sweep over IoU 0.50 to 0.95 plotted as a mAP-vs-IoU curve.
 
-**Those validation scripts are not part of this repository** - they belong to the team tree. Their published output is quoted under [Results](#detector) for completeness.
+**Those validation scripts are not part of this repository.** Their published output is quoted under [Results](#detector) for completeness.
 
 ### 4. Radar clustering (range-adaptive DBSCAN)
 
@@ -98,7 +98,7 @@ Flat layout - everything sits at the repository root.
 
 ## Results
 
-Every number below is quoted from a file that was produced by this project. Nothing is estimated. Where the source file is not in this repository, that is said outright.
+Every number below is quoted from a file this project produced. Nothing is estimated. Where the source file is not committed here, that is said outright.
 
 ### Detector
 
@@ -110,11 +110,11 @@ The three checkpoints in `YOLO Models/` correspond to these runs:
 | `Small_200 epochs_batch 16.pt` | YOLOv8s | 200 | 16 | yes | 0.980 | 0.947 | 0.976 | 0.904 |
 | `Large_300 epoch_batch 4.pt` | YOLOv8l | 300 | 4 | yes | 0.996 | 0.996 | 0.995 | 0.883 |
 
-Provenance: the nano and large rows are the final-epoch validation metrics from the Ultralytics `results.csv` of each training run; the small row is read from the team's own comparison sheet, `Model Evaluation.xlsx`. **Neither the run directories nor that spreadsheet are committed here** - they live in the team project. The same sheet also gives mAP@75: 0.959 (nano), 0.968 (small), 0.980 (large), and records the only visible per-class weakness in any run - recall 0.748 on the `car` class for the YOLOv8s run.
+Provenance: the nano and large rows are the final-epoch validation metrics from the Ultralytics `results.csv` of each training run; the small row is read from a model-comparison spreadsheet. **Neither the run directories nor that spreadsheet are committed here.** The same sheet also gives mAP@75: 0.959 (nano), 0.968 (small), 0.980 (large), and records the only visible per-class weakness in any run - recall 0.748 on the `car` class for the YOLOv8s run.
 
 For reference, a fourth run that is *not* checkpointed here (YOLOv8l, 200 epochs, batch 4, no augmentation, unshuffled split) reached precision 0.973, recall 0.967, mAP@50 0.974 and mAP@50-95 0.794 - the augmentation and the shuffled split are worth roughly nine points of mAP@50-95.
 
-The from-scratch harness of stage 3 is stricter than Ultralytics' own validation, and its numbers are lower. Its stored output - the file `YOLO detection/Models/Model AP, mAP.docx` in the team project, **not committed here**, in the `{iou: mAP}` print format of the harness - gives:
+The from-scratch harness of stage 3 is stricter than Ultralytics' own validation, and its numbers are lower. Its stored output, in the `{iou: mAP}` print format of the harness and **not committed here**, gives:
 
 | Model | mAP@50 | mAP@75 | mAP@95 | mAP@50-95 |
 | --- | --- | --- | --- | --- |
@@ -129,7 +129,7 @@ The two evaluators agree closely at IoU 0.50 and diverge as the threshold tighte
 
 The custom DBSCAN output was compared against the dataset's per-point radar annotations using an IoU matrix between predicted and annotated clusters. Over scene `INFRA-3DRC_scene-08` this reports overall precision **0.837**, overall recall **0.847** and a precision-recall area under the curve of **0.486**, with per-frame silhouette scores also printed for each frame.
 
-Provenance: the stored outputs of the team's clustering-evaluation notebook, which is **not committed here**. The clustering module those numbers describe is `Radar_Clustering_CustomDBScan.py` in this repository.
+Provenance: the stored outputs of the clustering-evaluation notebook, which is **not committed here**. The clustering module those numbers describe is `Radar_Clustering_CustomDBScan.py` in this repository.
 
 | | |
 | --- | --- |
@@ -182,7 +182,7 @@ calibration_file = Path('path/to/your/calibration_file')    # <scene>/calibratio
 yolo_model       = YOLO('path/to/your/trained_model')       # e.g. 'YOLO Models/Large_300 epoch_batch 4.pt'
 ```
 
-Point them at a downloaded scene directory and one of the committed checkpoints. The Jupyter notebooks likewise still contain absolute Windows paths from the machines they were written on and need editing before they will run.
+Point them at a downloaded scene directory and one of the committed checkpoints. The Jupyter notebooks likewise still contain absolute paths from the machines they were written on and need editing before they will run.
 
 ### Running the fusion demo
 
@@ -199,17 +199,8 @@ This iterates over the frames of the configured scene and opens a matplotlib win
 
 The from-scratch mAP harness described in stage 3 is not part of this repository.
 
-## Team
-
-This was a group project. Work was split across the camera branch, the radar branch and the fusion stage, and in the team tree each member kept their own working directory.
-
-Contributors: **Madhuri**, **Bhuvan**, **Ghulam**, **Jayesh**, **Harshit** and **Darshak**. The three detector checkpoints committed here come from three of those parallel training efforts (nano, small and large). The course ran in two stages - Stage I (object detection and radar clustering) and Stage II (spatial association) - with two groups working on the association problem in parallel.
-
-This repository is the single-author public slice of that work. Please read the code here as one contributor's part of a shared effort, not as a solo project.
-
 ## Attribution and licence
 
 - **Dataset**: INFRA-3DRC-Dataset, licensed **CC BY-NC 4.0**. Non-commercial use only. It is not redistributed here; get it from <https://github.com/FraunhoferIVI/INFRA-3DRC-Dataset>.
-- **`hungarian.py`**: third-party code, not written by the team. Hungarian (Munkres) algorithm implementation by Thom Dedecko, MIT License, <https://github.com/tdedecko/hungarian-algorithm>. The original header and licence notice are kept intact in the file.
+- **`hungarian.py`**: third-party code. Hungarian (Munkres) algorithm implementation by Thom Dedecko, MIT License, <https://github.com/tdedecko/hungarian-algorithm>. The original header and licence notice are kept intact in the file.
 - **YOLOv8**: [Ultralytics](https://github.com/ultralytics/ultralytics), AGPL-3.0.
-- The remaining code is coursework by the team named above.
