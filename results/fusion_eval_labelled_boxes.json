@@ -1,0 +1,14 @@
+{
+  "detections": "labelled boxes",
+  "scenes": 22,
+  "frames": 2484,
+  "boxes": 3880,
+  "boxes_with_moving_radar_returns": 3405,
+  "association_precision": 0.9766063630692452,
+  "association_recall": 0.9195301027900147,
+  "fused_boxes": 3206,
+  "wrong_associations": 75,
+  "missed_associations": 221,
+  "id_switches": 55,
+  "idf1": 0.9009154550350027
+}

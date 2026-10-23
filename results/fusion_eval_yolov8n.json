@@ -1,0 +1,14 @@
+{
+  "detections": "models/yolov8n.pt",
+  "scenes": 22,
+  "frames": 2484,
+  "boxes": 3880,
+  "boxes_with_moving_radar_returns": 3405,
+  "association_precision": 0.9781795511221946,
+  "association_recall": 0.9215859030837005,
+  "fused_boxes": 3208,
+  "wrong_associations": 70,
+  "missed_associations": 217,
+  "id_switches": 52,
+  "idf1": 0.8922994076467421
+}
