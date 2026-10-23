@@ -26,14 +26,14 @@ def main():
     p.add_argument("--no-tracking", action="store_true", help="fuse each frame on its own, without tracks")
     p.add_argument("--min-neighbours", type=int, default=2, help="neighbours a radar return needs to seed a cluster")
     args = p.parse_args()
+    if args.save and args.save.suffix not in ("", ".mp4", ".gif"):
+        p.error("--save takes a .mp4 or .gif file, or a folder")
 
     pipeline = FusionPipeline(YOLO(args.model), Calibration.from_file(args.scene / "calibration.json"),
                               conf=args.conf, eps=tuple(args.eps), min_neighbours=args.min_neighbours)
     frames = scene_frames(args.scene)[: args.max_frames]
     tracker = None if args.no_tracking else Tracker(pipeline.calibration.radar_to_ground)
 
-    if args.save and args.save.suffix not in ("", ".mp4", ".gif"):
-        p.error("--save takes a .mp4 or .gif file, or a folder")
     writer, gif_frames = None, []
     if args.save and args.save.suffix == "":
         args.save.mkdir(parents=True, exist_ok=True)
