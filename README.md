@@ -23,18 +23,24 @@ flowchart LR
 ```
 
 1. **Detect.** YOLOv8 finds adults, bicycles, motorcycles, cars and buses in the camera image.
-2. **Cluster.** Moving radar returns are grouped into objects. The neighbourhood grows with range, because returns get sparser with distance.
-3. **Associate.** A cluster is a candidate for a box when its projected centre falls inside the box. Ambiguous cases are resolved by distance on the ground plane:
 
-| Case | Resolution |
-|---|---|
-| one cluster, one box | match |
-| one cluster in several boxes | the box nearest to the cluster on the ground |
-| several clusters in one box | clusters with similar speed and lateral position are merged into one vehicle; the nearest group wins |
-| several clusters, several boxes | optimal assignment by ground distance |
-| box with no cluster | second pass against single radar returns the clustering left out |
+2. **Cluster.** Moving radar returns are grouped into objects. Returns get sparser with distance, so a fixed neighbourhood either splits far objects or merges near ones; the neighbourhood here grows with range.
 
-4. **Track.** An extended Kalman filter per object, with position and velocity on the ground plane. A fused object updates its track with what the radar actually measures: range, azimuth and range rate (Doppler). These relate nonlinearly to the state, so the filter linearises them at every update. The Doppler term observes speed directly, so a new track knows its radial speed from its first frame. Objects without radar update with the camera's ground estimate, at a larger uncertainty. Tracks are matched to detections with the Hungarian algorithm on Mahalanobis distance, get an ID after 3 hits and survive 5 missed frames.
+![Fixed versus range-adaptive radar clustering on one scan](docs/figures/clustering_range_adaptive.png)
+
+3. **Associate.** A cluster is a candidate for a box when its projected centre falls inside the box, widened by 20% for calibration error. Ambiguous cases are resolved on the ground plane:
+
+![How ambiguous associations are resolved](docs/figures/association_cases.png)
+
+4. **Track.** An extended Kalman filter per object, with position and velocity on the ground plane. A fused object updates its track with what the radar measures: range, azimuth and range rate (Doppler). These relate nonlinearly to the state, so the filter linearises them at every update. Objects without radar fall back to the camera's ground estimate, which drifts by metres at range:
+
+![Camera ground position error against radar, by distance](docs/figures/camera_vs_radar_position.png)
+
+Doppler observes speed directly, so a new track has its speed from the first radar frame instead of differentiating positions:
+
+![Tracked speed with and without Doppler](docs/figures/doppler_tracking.png)
+
+Tracks are matched to detections with the Hungarian algorithm on Mahalanobis distance, get an ID after 3 hits and survive 5 missed frames.
 
 ## Quick start
 
@@ -91,14 +97,14 @@ python tools/evaluate_detector.py --data data/yolo --models runs/detect/train/we
 ```
 run_fusion.py            run the pipeline on a scene
 fusion/                  pcd reader, calibration, clustering, association, tracking, rendering
-tools/                   dataset preparation, detector and fusion evaluation
+tools/                   dataset preparation, detector and fusion evaluation, README figures
 models/                  YOLOv8 n / s / l checkpoints (Git LFS)
 tests/                   unit tests: python -m pytest
 ```
 
 ## Limitations
 
-- The camera's ground-plane mapping and the radar's ground position disagree by about 2 m in this calibration, so matching happens in the image and ground distance only breaks ties.
+- The camera's ground mapping is off by 1 to 3 m (figure above), so matching happens in the image and ground distance only breaks ties.
 - The motion model is constant velocity, so turning vehicles lag slightly until the filter catches up.
 - Radar returns slower than 0.1 m/s are dropped as static clutter, so road users that stand still get the camera's position only.
 - All scores come from one roadside station; the shipped detectors have also seen frames from every scene in training.
