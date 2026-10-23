@@ -9,6 +9,7 @@ import cv2
 from ultralytics import YOLO
 
 from fusion import Calibration, FusionPipeline, scene_frames
+from fusion.tracking import Tracker
 from fusion.visualize import render
 
 
@@ -22,23 +23,30 @@ def main():
     p.add_argument("--max-frames", type=int, help="stop after this many frames")
     p.add_argument("--eps", type=float, nargs=2, default=(0.1, 0.25), metavar=("EPS_X", "EPS_Y"),
                    help="clustering ellipse growth with sqrt(range), forward and lateral")
+    p.add_argument("--no-tracking", action="store_true", help="fuse each frame on its own, without tracks")
     p.add_argument("--min-neighbours", type=int, default=2, help="neighbours a radar return needs to seed a cluster")
     args = p.parse_args()
 
     pipeline = FusionPipeline(YOLO(args.model), Calibration.from_file(args.scene / "calibration.json"),
                               conf=args.conf, eps=tuple(args.eps), min_neighbours=args.min_neighbours)
     frames = scene_frames(args.scene)[: args.max_frames]
+    tracker = None if args.no_tracking else Tracker(pipeline.calibration.radar_to_ground)
 
+    if args.save and args.save.suffix not in ("", ".mp4", ".gif"):
+        p.error("--save takes a .mp4 or .gif file, or a folder")
     writer, gif_frames = None, []
-    if args.save and args.save.suffix == "" :
+    if args.save and args.save.suffix == "":
         args.save.mkdir(parents=True, exist_ok=True)
 
     for n, (image, scan) in enumerate(frames, 1):
         result = pipeline(image, scan)
+        if tracker:
+            tracker.update(result.objects, result.time)
         panel = render(result)
         fused = sum(1 for o in result.objects if o.radar)
         print(f"[{n}/{len(frames)}] {image.name}: {len(result.objects)} detections, {fused} with radar, "
-              f"{len(result.clusters)} clusters")
+              f"{len(result.clusters)} clusters"
+              + (f", {len(tracker.tracks)} tracks" if tracker else ""))
 
         if args.save:
             if args.save.suffix == ".mp4":

@@ -15,7 +15,10 @@ def read_pcd(path):
             line = f.readline()
             if not line:
                 raise ValueError(f"{path}: no DATA line in header")
-            key, *values = line.decode("ascii").strip().split()
+            parts = line.decode("ascii").split()
+            if not parts or parts[0].startswith("#"):
+                continue
+            key, *values = parts
             header[key] = values
             if key == "DATA":
                 break

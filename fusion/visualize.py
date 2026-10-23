@@ -36,6 +36,14 @@ def _label(img, text, org, colour, placed, scale=1.0):
     cv2.putText(img, text, (x + 5, y - 4), cv2.FONT_HERSHEY_SIMPLEX, scale, (20, 20, 20), 2, cv2.LINE_AA)
 
 
+def colour_of(i, obj):
+    """Stable colour per track; objects without a confirmed track use their index, grey without radar."""
+    if not obj.radar and obj.track_id is None:
+        return _bgr(GREY)
+    key = obj.track_id if obj.track_id is not None else i
+    return _bgr(PALETTE[key % len(PALETTE)])
+
+
 def draw_image(frame, box_scale=1.2):
     img = cv2.imread(str(frame.image))
     cal = frame.calibration
@@ -45,7 +53,7 @@ def draw_image(frame, box_scale=1.2):
 
     labels = []
     for i, obj in enumerate(frame.objects):
-        colour = _bgr(PALETTE[i % len(PALETTE)]) if obj.radar else _bgr(GREY)
+        colour = colour_of(i, obj)
         x1, y1, x2, y2 = obj.box.astype(int)
         cv2.rectangle(img, (x1, y1), (x2, y2), colour, 3)
         cx, cy, w, h = (x1 + x2) / 2, (y1 + y2) / 2, (x2 - x1) * box_scale, (y2 - y1) * box_scale
@@ -57,6 +65,8 @@ def draw_image(frame, box_scale=1.2):
             else:
                 cv2.rectangle(img, (int(u) - 11, int(v) - 11), (int(u) + 11, int(v) + 11), colour, 4)
         text = obj.label if not obj.radar else f"{obj.label} {obj.range_m:.0f} m {obj.doppler:+.1f} m/s"
+        if obj.track_id is not None:
+            text = f"#{obj.track_id} {text}"
         labels.append((text, (int(cx - w / 2), int(cy - h / 2) - 4), colour))
 
     placed = []                                    # labels last, nearest object first, so nothing covers them
@@ -87,13 +97,18 @@ def draw_birdseye(frame, height, width=420, x_range=(0, 100), y_range=(-25, 25))
         cv2.circle(img, px(g), 3, _bgr(RADAR), -1)
 
     for i, obj in enumerate(frame.objects):
-        colour = _bgr(PALETTE[i % len(PALETTE)]) if obj.radar else _bgr(GREY)
+        colour = colour_of(i, obj)
+        if len(obj.trail) > 1:                                              # track history
+            cv2.polylines(img, [np.array([px(g) for g in obj.trail], np.int32)], False, colour, 2, cv2.LINE_AA)
+        if obj.velocity is not None:                                        # 1 s ahead at the tracked velocity
+            head = obj.trail[-1]
+            cv2.arrowedLine(img, px(head), px(head + obj.velocity), colour, 2, cv2.LINE_AA, tipLength=0.3)
         cv2.circle(img, px(obj.ground), 9, colour, 2)                       # camera estimate
         for r in obj.radar:
             g = cal.radar_to_ground_xy([r.reference])[0]
             cv2.circle(img, px(g), 7, colour, -1)                           # radar reference point
     cv2.putText(img, "bird's-eye view", (margin, 24), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (60, 60, 60), 1, cv2.LINE_AA)
-    cv2.putText(img, "ring: camera   dot: radar", (margin, height - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.45,
+    cv2.putText(img, "ring: camera  dot: radar  line: track", (margin, height - 12), cv2.FONT_HERSHEY_SIMPLEX, 0.45,
                 (90, 90, 90), 1, cv2.LINE_AA)
     return img
 

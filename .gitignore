@@ -2,10 +2,11 @@
 Dataset/
 data/
 
-# Outputs (the detector evaluation in results/ is kept)
+# Outputs (the evaluations in results/ are kept)
 results/*
 !results/detector_eval.json
 !results/detector_eval.png
+!results/fusion_eval_*.json
 runs/
 *.mp4
 

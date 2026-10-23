@@ -20,6 +20,10 @@ class FusedObject:
     radar: list = field(default_factory=list)   # RadarObjects backing this detection
     source: str = "none"      # "cluster", "noise" or "none"
     case: str = ""
+    radar_ground: np.ndarray = None   # (2,) ground position of the matched radar object(s)
+    track_id: int = None              # set by the tracker once the track is confirmed
+    velocity: np.ndarray = None       # (2,) ground-plane velocity from the tracker, m/s
+    trail: list = field(default_factory=list)
 
     @property
     def range_m(self):
@@ -33,6 +37,7 @@ class FusedObject:
 @dataclass
 class FrameResult:
     image: Path
+    time: float
     objects: list
     clusters: list
     noise: list
@@ -76,9 +81,11 @@ class FusionPipeline:
         names = [self.model.names[int(c)] for c in boxes.cls.cpu().numpy()]
         return boxes.xyxy.cpu().numpy(), names, boxes.conf.cpu().numpy()
 
-    def __call__(self, image, scan):
+    def __call__(self, image, scan, detections=None):
+        """Fuse one frame. `detections` = (xyxy, names, scores) replaces the detector, e.g. with ground truth."""
         cal = self.calibration
-        xyxy, names, confs = self.detect(image)
+        xyxy, names, confs = detections if detections is not None else self.detect(image)
+        xyxy = np.asarray(xyxy, float).reshape(-1, 4)
         bottom_centre = np.stack([(xyxy[:, 0] + xyxy[:, 2]) / 2, xyxy[:, 3]], axis=1) if len(xyxy) else np.empty((0, 2))
         box_ground = cal.image_to_ground_xy(bottom_centre)
         objects = [FusedObject(box=b, label=n, confidence=float(c), ground=g)
@@ -95,10 +102,11 @@ class FusionPipeline:
             result = associate(xyxy, box_ground, uv, ground, doppler, allowed_boxes=allowed, scale=self.box_scale)
             for m in result.matches:
                 objects[m.box].radar = [candidates[i] for i in m.objects]
+                objects[m.box].radar_ground = ground[m.objects].mean(axis=0)
                 objects[m.box].source = source
                 objects[m.box].case = m.case
             return result.unmatched_boxes
 
         left = run(clusters, "cluster", range(len(objects)))
         run(noise, "noise", left)
-        return FrameResult(Path(image), objects, clusters, noise, cal)
+        return FrameResult(Path(image), _timestamp(Path(image)), objects, clusters, noise, cal)

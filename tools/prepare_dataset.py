@@ -48,6 +48,8 @@ def main():
     p.add_argument("--seed", type=int, default=0)
     args = p.parse_args()
 
+    if args.out.exists() and any(args.out.iterdir()):
+        raise SystemExit(f"{args.out} is not empty; a fresh folder keeps an old split from leaking into the new one")
     rng = random.Random(args.seed)
     np_rng = np.random.default_rng(args.seed)
     val_names = set(args.val_list.read_text().split()) if args.val_list else None
