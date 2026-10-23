@@ -1,20 +1,9 @@
-# Versions this project was last run with (Python 3.12, CUDA 12.1).
-# Install torch from https://pytorch.org for your own CUDA version.
-ultralytics==8.1.47
-torch==2.2.2
-opencv-python==4.9.0.80
-numpy==1.26.3
-pandas==2.1.4
-scikit-learn==1.5.0
-matplotlib==3.8.4
-pillow==11.3.0
-tqdm==4.66.2
-
-# The notebooks additionally need:
-# jupyter
-# PyQt5          # interactive backend for the live bird's-eye view (%matplotlib qt)
-# imgaug         # image augmentation notebooks
-# scikit-image   # image augmentation notebooks
-#
-# No point-cloud library is required: the radar .pcd files are read by a small
-# custom binary parser in Radar_Clustering_CustomDBScan.py.
+# Tested with Python 3.12, torch 2.14 (CPU), ultralytics 8.4, numpy 2.5, opencv-python 5.0.
+# For a GPU, install torch from https://pytorch.org first.
+ultralytics>=8.1
+opencv-python>=4.9
+numpy>=1.26
+scipy>=1.11
+pillow>=10.0
+matplotlib>=3.8
+pytest>=8.0
