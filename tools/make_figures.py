@@ -10,6 +10,7 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
+import cv2  # noqa: E402
 import numpy as np  # noqa: E402
 from matplotlib.patches import Ellipse  # noqa: E402
 
@@ -252,6 +253,59 @@ def association_cases_figure():
     plt.close(fig)
 
 
+def augmentation_figure(dataset, frame="camera_01__2023-07-06-20-05-14-905", copies=4):
+    """Rare-class upsampling: example copies, and the class counts before and after."""
+    from tools.prepare_dataset import CLASSES, PHOTOMETRIC, annotations, blur_out, photometric
+
+    image = next(dataset.glob(f"*/camera_01/camera_01__data/{frame}.png"))
+    boxes, _, _ = annotations(image.parent.parent / "camera_01__annotation" / (frame + ".json"))
+    img = cv2.imread(str(image))
+    xs = [b[1][0] for b in boxes] + [b[1][0] + b[1][2] for b in boxes]
+    ys = [b[1][1] for b in boxes] + [b[1][1] + b[1][3] for b in boxes]
+    pad = 60
+    x0, x1 = int(max(min(xs) - pad, 0)), int(min(max(xs) + pad, img.shape[1]))
+    y0, y1 = int(max(min(ys) - pad, 0)), int(min(max(ys) + pad, img.shape[0]))
+    rng = np.random.default_rng(1)
+    base = blur_out(img, [b for b in boxes if b[0] == 3])
+    tiles = [("original", img), ("car blurred out,\nits label removed", base)] + \
+            [(f"+ {kind}", photometric(base, rng, kind)) for kind in PHOTOMETRIC]
+    fig, axes = plt.subplots(1, len(tiles), figsize=(12, 2.3))
+    for ax, (title, tile) in zip(axes, tiles):
+        ax.imshow(cv2.cvtColor(tile[y0:y1, x0:x1], cv2.COLOR_BGR2RGB))
+        ax.set_title(title, fontsize=9)
+        ax.axis("off")
+    fig.tight_layout()
+    fig.savefig(OUT / "augmentation_examples.jpg", dpi=130, bbox_inches="tight", pil_kwargs={"quality": 88})
+    plt.close(fig)
+
+    val = set(Path("tools/splits/original_val.txt").read_text().split())
+    before, added = np.zeros(5, int), np.zeros(5, int)
+    for ann in dataset.glob("*/camera_01/camera_01__annotation/*.json"):
+        if ann.stem + ".png" in val:
+            continue
+        frame_boxes, _, _ = annotations(ann)
+        classes = [c for c, _ in frame_boxes]
+        for c in classes:
+            before[c] += 1
+        if 2 in classes:                                   # motorcycle frames get `copies` copies, cars hidden
+            for c in classes:
+                if c != 3:
+                    added[c] += copies
+    names = [n for _, n in sorted(CLASSES.values())]
+    fig, ax = plt.subplots(figsize=(6, 3.8))
+    ax.bar(names, before, color="#1c7ed6", label="original training boxes")
+    ax.bar(names, added, bottom=before, color="#e8590c", label=f"added by upsampling (motorcycle x{copies + 1})")
+    for i, (b, a) in enumerate(zip(before, added)):
+        ax.text(i, b + a + 25, f"{b + a}", ha="center", fontsize=9)
+    ax.set_ylabel("boxes in the training set")
+    ax.set_ylim(0, (before + added).max() * 1.12)
+    ax.set_title("Class balance before and after upsampling", fontsize=10.5)
+    ax.legend(frameon=False, fontsize=8.5)
+    fig.tight_layout()
+    fig.savefig(OUT / "class_balance.png", dpi=150)
+    plt.close(fig)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--dataset", required=True, type=Path)
@@ -260,6 +314,7 @@ def main():
     clustering_figure(args.dataset / "INFRA-3DRC_scene-10", "radar_01__2023-07-06-18-41-46-432.pcd")
     camera_vs_radar_figure(args.dataset)
     association_cases_figure()
+    augmentation_figure(args.dataset)
     doppler_figure(args.dataset)
     print(f"-> {OUT}")
 
